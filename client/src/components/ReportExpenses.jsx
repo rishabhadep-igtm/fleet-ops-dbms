@@ -111,10 +111,11 @@ export default function ReportExpenses({ expensesData, loading, theme }) {
     },
   };
 
-  const totalFuel = summary.total_fleet_fuel_cost ?? 0;
-  const totalMaint = summary.total_fleet_maintenance_cost ?? 0;
-  const totalCost = summary.total_fleet_operating_cost ?? 0;
-  const avgCostKm = summary.overall_avg_cost_per_km ?? 0;
+  const totalFuel = summary.total_fleet_fuel_cost ?? data.reduce((acc, r) => acc + (Number(r.TotalFuelCost) || 0), 0);
+  const totalMaint = summary.total_fleet_maintenance_cost ?? data.reduce((acc, r) => acc + (Number(r.TotalMaintenanceCost) || 0), 0);
+  const totalCost = summary.total_fleet_operating_cost ?? (totalFuel + totalMaint);
+  const totalDistance = summary.total_fleet_distance_km ?? data.reduce((acc, r) => acc + (Number(r.TotalDistanceKm) || 0), 0);
+  const avgCostKm = summary.overall_avg_cost_per_km ?? (totalDistance > 0 ? (totalCost / totalDistance).toFixed(2) : '0');
 
   return (
     <motion.div
@@ -122,15 +123,15 @@ export default function ReportExpenses({ expensesData, loading, theme }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.35 }}
-      className="space-y-6"
+      className="w-full max-w-7xl mx-auto space-y-8 flex flex-col items-center justify-center"
     >
-      {/* Report 2 Header Banner */}
-      <div className="glass-panel neon-card-purple p-6 relative overflow-hidden">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2 max-w-3xl">
-            <div className="flex items-center gap-2.5">
+      {/* Header Banner - Clean Professional SaaS Copy */}
+      <div className="glass-panel neon-card-purple p-8 rounded-2xl relative overflow-hidden w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-2 mb-1">
               <span
-                className="px-2.5 py-1 rounded-full text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5"
+                className="px-3.5 py-1 rounded-full text-xs font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5"
                 style={{
                   background: 'rgba(168, 85, 247, 0.15)',
                   border: '1px solid rgba(168, 85, 247, 0.4)',
@@ -138,47 +139,36 @@ export default function ReportExpenses({ expensesData, loading, theme }) {
                 }}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
-                DBMS Report 2: Operating Expense Summary
-              </span>
-              <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
-                View: <code className="text-cyan-400">view_vehicle_operating_cost</code>
+                Cost Breakdown
               </span>
             </div>
 
-            <h2 className="text-2xl font-display font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Fleet Operating Spend & Cost-Per-Km Efficiency
+            <h2 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Operating Expense Analytics
             </h2>
 
             <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              This analytical report queries PostgreSQL analytical view{' '}
-              <code className="font-mono text-cyan-400 px-1 py-0.5 rounded bg-cyan-950/40">
-                view_vehicle_operating_cost
-              </code>
-              . It demonstrates multi-table relational aggregation by pre-grouping{' '}
-              <code className="font-mono text-cyan-400">TripLogs</code>,{' '}
-              <code className="font-mono text-cyan-400">FuelLogs</code>, and{' '}
-              <code className="font-mono text-cyan-400">MaintenanceRecords</code> before joining onto{' '}
-              <code className="font-mono text-cyan-400">Vehicles</code>, completely avoiding Cartesian product inflation.
+              Fuel expenditure and maintenance cost comparison per vehicle.
             </p>
           </div>
 
           {/* Efficiency Metric */}
           <div
-            className="p-5 rounded-2xl border text-center min-w-[180px]"
+            className="p-5 px-6 rounded-2xl border text-center min-w-[170px]"
             style={{
               backgroundColor: 'var(--bg-card)',
               borderColor: 'rgba(168, 85, 247, 0.35)',
               boxShadow: 'var(--glow-purple)',
             }}
           >
-            <div className="flex items-center justify-center gap-1 text-xs font-mono uppercase tracking-wider mb-1" style={{ color: 'var(--neon-cyan)' }}>
+            <div className="flex items-center justify-center gap-1.5 text-xs font-mono uppercase tracking-wider mb-2" style={{ color: 'var(--neon-cyan)' }}>
               <Activity className="w-3.5 h-3.5" />
               <span>Fleet Efficiency</span>
             </div>
-            <div className="text-3xl font-display font-extrabold font-mono" style={{ color: 'var(--text-primary)' }}>
+            <div className="text-2xl font-display font-extrabold font-mono" style={{ color: 'var(--text-primary)' }}>
               ₹{avgCostKm}
             </div>
-            <div className="text-[11px] font-mono mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-xs font-mono mt-1" style={{ color: 'var(--text-muted)' }}>
               Average Cost Per Km
             </div>
           </div>
@@ -186,91 +176,139 @@ export default function ReportExpenses({ expensesData, loading, theme }) {
       </div>
 
       {/* 4 Financial KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full">
         {/* Total Cost */}
-        <div className="glass-panel p-5 border flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono font-medium" style={{ color: 'var(--text-muted)' }}>
-              Total Fleet Spend
-            </span>
-            <DollarSign className="w-4 h-4 text-cyan-400" />
+        <div className="glass-panel neon-card-cyan p-6 rounded-2xl border flex flex-col justify-between min-h-[175px]">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs uppercase font-mono font-semibold tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                Total Fleet Spend
+              </span>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background: 'rgba(0, 243, 255, 0.12)',
+                  border: '1px solid rgba(0, 243, 255, 0.3)',
+                  color: 'var(--neon-cyan)',
+                  boxShadow: 'var(--glow-cyan)',
+                }}
+              >
+                <DollarSign className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="text-2xl lg:text-3xl font-display font-extrabold font-mono" style={{ color: 'var(--text-primary)' }}>
+              ₹{Number(totalCost).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </div>
           </div>
-          <div className="text-2xl font-display font-bold font-mono mt-2" style={{ color: 'var(--text-primary)' }}>
-            ₹{Number(totalCost).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-          </div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-xs mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)', color: 'var(--text-muted)' }}>
             Fuel + Maintenance combined
           </div>
         </div>
 
         {/* Total Fuel */}
-        <div className="glass-panel p-5 border flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono font-medium" style={{ color: 'var(--text-muted)' }}>
-              Total Fuel Expense
-            </span>
-            <Fuel className="w-4 h-4 text-cyan-400" />
+        <div className="glass-panel neon-card-cyan p-6 rounded-2xl border flex flex-col justify-between min-h-[175px]">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs uppercase font-mono font-semibold tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                Total Fuel Expense
+              </span>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background: 'rgba(0, 243, 255, 0.12)',
+                  border: '1px solid rgba(0, 243, 255, 0.3)',
+                  color: 'var(--neon-cyan)',
+                  boxShadow: 'var(--glow-cyan)',
+                }}
+              >
+                <Fuel className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="text-2xl lg:text-3xl font-display font-extrabold font-mono" style={{ color: 'var(--neon-cyan)' }}>
+              ₹{Number(totalFuel).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </div>
           </div>
-          <div className="text-2xl font-display font-bold font-mono mt-2" style={{ color: 'var(--neon-cyan)' }}>
-            ₹{Number(totalFuel).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-          </div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-xs mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)', color: 'var(--text-muted)' }}>
             {((totalFuel / (totalCost || 1)) * 100).toFixed(1)}% of total budget
           </div>
         </div>
 
         {/* Total Maintenance */}
-        <div className="glass-panel p-5 border flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono font-medium" style={{ color: 'var(--text-muted)' }}>
-              Total Maintenance Cost
-            </span>
-            <Wrench className="w-4 h-4 text-purple-400" />
+        <div className="glass-panel neon-card-purple p-6 rounded-2xl border flex flex-col justify-between min-h-[175px]">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs uppercase font-mono font-semibold tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                Total Maintenance Cost
+              </span>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background: 'rgba(168, 85, 247, 0.12)',
+                  border: '1px solid rgba(168, 85, 247, 0.3)',
+                  color: 'var(--neon-purple)',
+                  boxShadow: 'var(--glow-purple)',
+                }}
+              >
+                <Wrench className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="text-2xl lg:text-3xl font-display font-extrabold font-mono" style={{ color: 'var(--neon-purple)' }}>
+              ₹{Number(totalMaint).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </div>
           </div>
-          <div className="text-2xl font-display font-bold font-mono mt-2" style={{ color: 'var(--neon-purple)' }}>
-            ₹{Number(totalMaint).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-          </div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-xs mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)', color: 'var(--text-muted)' }}>
             {((totalMaint / (totalCost || 1)) * 100).toFixed(1)}% of total budget
           </div>
         </div>
 
         {/* Efficiency Index */}
-        <div className="glass-panel p-5 border flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono font-medium" style={{ color: 'var(--text-muted)' }}>
-              Operating Distance
-            </span>
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
+        <div className="glass-panel neon-card-emerald p-6 rounded-2xl border flex flex-col justify-between min-h-[175px]">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs uppercase font-mono font-semibold tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                Operating Distance
+              </span>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{
+                  background: 'rgba(0, 255, 136, 0.12)',
+                  border: '1px solid rgba(0, 255, 136, 0.3)',
+                  color: 'var(--neon-emerald)',
+                  boxShadow: 'var(--glow-emerald)',
+                }}
+              >
+                <TrendingUp className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="text-2xl lg:text-3xl font-display font-extrabold font-mono" style={{ color: 'var(--neon-emerald)' }}>
+              {Number(totalDistance).toLocaleString('en-IN')}{' '}
+              <span className="text-sm font-normal">km</span>
+            </div>
           </div>
-          <div className="text-2xl font-display font-bold font-mono mt-2" style={{ color: 'var(--neon-emerald)' }}>
-            {Number(summary.total_fleet_distance_km ?? 0).toLocaleString('en-IN')}{' '}
-            <span className="text-xs font-normal">km</span>
-          </div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-xs mt-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)', color: 'var(--text-muted)' }}>
             Recorded trip mileage
           </div>
         </div>
       </div>
 
-      {/* Cyber Neon Grouped Bar Chart */}
-      <div className="glass-panel border p-6">
+      {/* Grouped Bar Chart */}
+      <div className="glass-panel border p-8 w-full">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h3 className="font-display font-bold text-lg flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
               <BarChart3 className="w-5 h-5 text-cyan-400" />
-              <span>Fuel Spend vs. Maintenance Cost per Vehicle</span>
+              <span>Fuel Spend vs. Maintenance Cost</span>
             </h3>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Visualizing PostgreSQL aggregated costs by vehicle license plate
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              Aggregated operational expenses by vehicle license plate
             </p>
           </div>
-          <div className="flex items-center gap-3 text-xs font-mono">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-5 text-xs font-mono">
+            <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--neon-cyan)' }} />
               <span style={{ color: 'var(--text-secondary)' }}>Fuel Spend</span>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--neon-purple)' }} />
               <span style={{ color: 'var(--text-secondary)' }}>Maintenance</span>
             </div>
@@ -288,17 +326,17 @@ export default function ReportExpenses({ expensesData, loading, theme }) {
         </div>
       </div>
 
-      {/* Advanced Frosted-Glass Vehicle Operating Cost Table */}
+      {/* Advanced Frosted-Glass Vehicle Operating Cost Table - Centered & Spacious */}
       <div
-        className="glass-table-panel p-6 shadow-2xl relative overflow-hidden"
-        style={{ borderColor: 'rgba(168, 85, 247, 0.30)' }}
+        className="glass-table-panel p-8 shadow-2xl relative overflow-hidden w-full"
+        style={{ borderColor: 'rgba(168, 85, 247, 0.28)' }}
       >
-        <div className="flex items-center justify-between mb-4 relative z-10">
+        <div className="flex items-center justify-between mb-6 relative z-10">
           <h3 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
             Vehicle Operating Cost Breakdown
           </h3>
           <span className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
-            Computed in real-time via PostgreSQL SQL Views
+            Real-time telemetry and expense metrics
           </span>
         </div>
 
@@ -309,19 +347,19 @@ export default function ReportExpenses({ expensesData, loading, theme }) {
             backgroundColor: 'rgba(0, 0, 0, 0.08)',
           }}
         >
-          <table className="w-full text-left text-sm border-separate border-spacing-y-1.5 px-2 py-2">
+          <table className="w-full text-left text-sm border-separate border-spacing-y-2 px-3 py-3">
             <thead>
               <tr
                 className="text-xs uppercase font-mono tracking-wider"
                 style={{ color: 'var(--text-muted)' }}
               >
-                <th className="py-2.5 px-4 font-semibold">License Plate</th>
-                <th className="py-2.5 px-4 font-semibold">Model</th>
-                <th className="py-2.5 px-4 font-semibold">Distance (km)</th>
-                <th className="py-2.5 px-4 font-semibold">Fuel Spend</th>
-                <th className="py-2.5 px-4 font-semibold">Maintenance</th>
-                <th className="py-2.5 px-4 font-semibold">Total Cost</th>
-                <th className="py-2.5 px-4 font-semibold text-right">Cost / Km</th>
+                <th className="py-3 px-6 font-semibold">License Plate</th>
+                <th className="py-3 px-6 font-semibold">Model</th>
+                <th className="py-3 px-6 font-semibold text-right">Distance (km)</th>
+                <th className="py-3 px-6 font-semibold text-right">Fuel Spend</th>
+                <th className="py-3 px-6 font-semibold text-right">Maintenance</th>
+                <th className="py-3 px-6 font-semibold text-right">Total Cost</th>
+                <th className="py-3 px-6 font-semibold text-center w-36">Cost / Km</th>
               </tr>
             </thead>
             <tbody>
@@ -340,44 +378,44 @@ export default function ReportExpenses({ expensesData, loading, theme }) {
                 return (
                   <motion.tr
                     key={vid}
-                    whileHover={{ scale: 1.008, x: 3 }}
+                    whileHover={{ scale: 1.008, x: 2 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                     className="group rounded-xl cursor-default transition-all duration-200"
                     style={{
                       backgroundColor: 'var(--bg-table-row)',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.08)',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--bg-table-row-hover)';
                       e.currentTarget.style.boxShadow =
-                        '0 6px 24px -2px rgba(168, 85, 247, 0.24), inset 0 0 12px rgba(168, 85, 247, 0.08)';
+                        '0 8px 26px -2px rgba(168, 85, 247, 0.24), inset 0 0 12px rgba(168, 85, 247, 0.08)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--bg-table-row)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                      e.currentTarget.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.08)';
                     }}
                   >
-                    <td className="py-3 px-4 rounded-l-xl font-mono font-bold text-xs" style={{ color: 'var(--neon-cyan)' }}>
+                    <td className="py-4 px-6 rounded-l-xl font-mono font-bold text-xs" style={{ color: 'var(--neon-cyan)' }}>
                       {plate}
                     </td>
-                    <td className="py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <td className="py-4 px-6 text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
                       {model}
                     </td>
-                    <td className="py-3 px-4 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <td className="py-4 px-6 font-mono text-xs text-right" style={{ color: 'var(--text-secondary)' }}>
                       {Number(km).toLocaleString('en-IN')} km
                     </td>
-                    <td className="py-3 px-4 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <td className="py-4 px-6 font-mono text-xs text-right" style={{ color: 'var(--text-secondary)' }}>
                       ₹{Number(fuel).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 font-mono text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <td className="py-4 px-6 font-mono text-xs text-right" style={{ color: 'var(--text-secondary)' }}>
                       ₹{Number(maint).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 font-mono font-bold text-xs" style={{ color: 'var(--text-primary)' }}>
+                    <td className="py-4 px-6 font-mono font-bold text-xs text-right" style={{ color: 'var(--text-primary)' }}>
                       ₹{Number(total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3 px-4 text-right rounded-r-xl">
+                    <td className="py-4 px-6 text-center rounded-r-xl">
                       <span
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-mono font-bold text-xs shadow-sm"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full font-mono font-bold text-xs shadow-sm"
                         style={{
                           backgroundColor: isEfficient
                             ? 'rgba(0, 255, 136, 0.14)'

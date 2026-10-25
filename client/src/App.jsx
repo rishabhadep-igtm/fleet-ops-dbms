@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import InteractiveRoadCanvas from './components/InteractiveRoadCanvas';
+import InteractiveSky from './components/InteractiveSky';
+import LandingPage from './components/LandingPage';
 import Navbar from './components/Navbar';
 import KpiCards from './components/KpiCards';
 import FleetTable from './components/FleetTable';
@@ -16,22 +19,19 @@ import {
   Fuel,
   Wrench,
   Truck,
-  Zap,
   CheckCircle2,
   AlertTriangle,
   X,
 } from 'lucide-react';
 
 export default function App() {
-  // Theme state: defaults to sleek dark mode
+  const location = useLocation();
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('fleetops_theme') || 'dark';
   });
 
-  // Navigation tab: 'dashboard' | 'overdue' | 'expenses'
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Backend data state
   const [dbHealth, setDbHealth] = useState(null);
   const [kpis, setKpis] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -40,13 +40,11 @@ export default function App() {
   const [overdueReport, setOverdueReport] = useState(null);
   const [expensesReport, setExpensesReport] = useState(null);
 
-  // UI state
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [notification, setNotification] = useState(null);
 
-  // Modal states
   const [tripModalOpen, setTripModalOpen] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
   const [maintModalOpen, setMaintModalOpen] = useState(false);
@@ -54,7 +52,6 @@ export default function App() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
 
-  // Apply theme to DOM document
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('fleetops_theme', theme);
@@ -64,7 +61,6 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Fetch all live data from Flask API
   const refreshAllData = useCallback(async () => {
     setLoading(true);
     try {
@@ -97,16 +93,14 @@ export default function App() {
     refreshAllData();
   }, [refreshAllData]);
 
-  // Show toast notification
   const showToast = (toast) => {
     setNotification(toast);
     setTimeout(() => {
       setNotification((curr) => (curr === toast ? null : curr));
-    }, 7000);
+    }, 6000);
     refreshAllData();
   };
 
-  // Quick Action handlers
   const openTripForVehicle = (v) => {
     setSelectedVehicle(v);
     setTripModalOpen(true);
@@ -131,11 +125,35 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
-      {/* 3D "Car on a Road" Interactive Three.js Background with Lane Steering & Parallax */}
+      {/* 3D "Car on a Road" Forward Driving Interactive Highway Background */}
       <InteractiveRoadCanvas theme={theme} />
 
-      {/* Top Cyber Navigation Bar */}
-      <Navbar
+      {/* Dynamic Cursor-Responsive Environmental Sky Layer (Framer Motion Opposing Parallax) */}
+      <InteractiveSky theme={theme} />
+
+      {/* Route-Based View Transitions with Persistent Interactive Background */}
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          {/* 1. Minimalist Landing / Gateway Page (Route: /) */}
+          <Route
+            path="/"
+            element={<LandingPage theme={theme} toggleTheme={toggleTheme} />}
+          />
+
+          {/* 2. Full Commercial Fleet Operations Dashboard (Route: /dashboard) */}
+          <Route
+            path="/dashboard"
+            element={
+              <motion.div
+                key="dashboard-view-container"
+                initial={{ opacity: 0, y: 25, filter: 'blur(8px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -25, filter: 'blur(8px)' }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                className="relative z-20 min-h-screen flex flex-col"
+              >
+                {/* Top Sticky Navigation Bar */}
+                <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         theme={theme}
@@ -145,7 +163,7 @@ export default function App() {
         overdueCount={overdueCount}
       />
 
-      {/* Floating System HUD Toast Notification */}
+      {/* System Toast Notification */}
       <AnimatePresence>
         {notification && (
           <motion.div
@@ -153,21 +171,17 @@ export default function App() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className="fixed top-24 right-4 z-50 max-w-md w-full shadow-2xl rounded-2xl border p-4 backdrop-blur-2xl"
+            className="fixed top-24 right-6 z-50 max-w-sm w-full shadow-2xl rounded-2xl border p-4 backdrop-blur-2xl"
             style={{
               backgroundColor: 'var(--bg-modal)',
               borderColor:
-                notification.type === 'trigger'
+                notification.type === 'trigger' || notification.type === 'success'
                   ? 'var(--neon-cyan)'
-                  : notification.type === 'error'
-                  ? 'var(--neon-magenta)'
-                  : 'var(--neon-emerald)',
+                  : 'var(--neon-magenta)',
               boxShadow:
-                notification.type === 'trigger'
+                notification.type === 'trigger' || notification.type === 'success'
                   ? 'var(--glow-cyan)'
-                  : notification.type === 'error'
-                  ? 'var(--glow-magenta)'
-                  : 'var(--glow-emerald)',
+                  : 'var(--glow-magenta)',
             }}
           >
             <div className="flex items-start gap-3">
@@ -175,22 +189,16 @@ export default function App() {
                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
                 style={{
                   background:
-                    notification.type === 'trigger'
-                      ? 'rgba(0, 243, 255, 0.2)'
-                      : notification.type === 'error'
+                    notification.type === 'error'
                       ? 'rgba(255, 0, 127, 0.2)'
-                      : 'rgba(0, 255, 136, 0.2)',
+                      : 'rgba(0, 243, 255, 0.2)',
                   color:
-                    notification.type === 'trigger'
-                      ? 'var(--neon-cyan)'
-                      : notification.type === 'error'
+                    notification.type === 'error'
                       ? 'var(--neon-magenta)'
-                      : 'var(--neon-emerald)',
+                      : 'var(--neon-cyan)',
                 }}
               >
-                {notification.type === 'trigger' ? (
-                  <Zap className="w-5 h-5 animate-pulse" />
-                ) : notification.type === 'error' ? (
+                {notification.type === 'error' ? (
                   <AlertTriangle className="w-5 h-5" />
                 ) : (
                   <CheckCircle2 className="w-5 h-5" />
@@ -198,26 +206,13 @@ export default function App() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">
-                  {notification.type === 'trigger'
-                    ? 'PL/pgSQL Trigger Fired'
-                    : notification.type === 'error'
-                    ? 'DBMS Warning'
-                    : 'Transaction Committed'}
-                </div>
-                <div className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                   {notification.message}
                 </div>
                 {notification.detail && (
-                  <div
-                    className="text-xs mt-1.5 p-2 rounded-lg font-mono leading-relaxed"
-                    style={{
-                      backgroundColor: 'rgba(0, 0, 0, 0.25)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                     {notification.detail}
-                  </div>
+                  </p>
                 )}
               </div>
 
@@ -232,153 +227,152 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Main Dashboard Canvas */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AnimatePresence mode="wait">
-          {/* TAB 1: LIVE DASHBOARD */}
-          {activeTab === 'dashboard' && (
-            <motion.div
-              key="dashboard-tab"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Header Action Toolbar */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-8">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                    <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-semibold">
-                      Live Telemetry & Relational Hub
-                    </span>
+      {/* Full-Height Flex Container with Absolute Vertical and Horizontal Centering */}
+      <div className="min-h-screen w-full flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <main className="relative z-10 w-full max-w-7xl mx-auto flex flex-col items-center justify-center my-auto">
+          <AnimatePresence mode="wait">
+            {/* TAB 1: LIVE DASHBOARD */}
+            {activeTab === 'dashboard' && (
+              <motion.div
+                key="dashboard-tab"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="w-full flex flex-col items-center justify-center space-y-8"
+              >
+                {/* Header Action Toolbar with Enlarged & Beautifully Padded Action Buttons */}
+                <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                      Commercial Fleet Operations
+                    </h2>
+                    <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                      Real-time dispatch telemetry, vehicle health, and operational expenditure tracking.
+                    </p>
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-display font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                    Commercial Fleet Operations
-                  </h2>
-                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    Live route dispatches, fuel accounting, and automated PL/pgSQL odometer triggers
-                  </p>
+
+                  {/* Action Buttons: h-11, w-auto, px-5 sm:px-6 py-2.5, flex items-center justify-center, whitespace-nowrap */}
+                  <div className="flex items-center flex-wrap gap-3 sm:gap-4">
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        setSelectedVehicle(null);
+                        setTripModalOpen(true);
+                      }}
+                      className="btn-cyber-cyan h-11 w-auto px-5 sm:px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 sm:gap-3 cursor-pointer shadow-lg whitespace-nowrap"
+                    >
+                      <Navigation className="w-4 h-4 text-cyan-300 shrink-0" />
+                      <span>Log Trip</span>
+                    </motion.button>
+
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        setSelectedVehicle(null);
+                        setMaintModalOpen(true);
+                      }}
+                      className="btn-cyber-purple h-11 w-auto px-5 sm:px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 sm:gap-3 cursor-pointer shadow-lg whitespace-nowrap"
+                    >
+                      <Wrench className="w-4 h-4 text-purple-300 shrink-0" />
+                      <span>Schedule Service</span>
+                    </motion.button>
+
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        setSelectedVehicle(null);
+                        setFuelModalOpen(true);
+                      }}
+                      className="btn-cyber-emerald h-11 w-auto px-5 sm:px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 sm:gap-3 cursor-pointer shadow-lg whitespace-nowrap"
+                    >
+                      <Fuel className="w-4 h-4 text-emerald-300 shrink-0" />
+                      <span>Record Fuel</span>
+                    </motion.button>
+
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        setSelectedVehicle(null);
+                        setVehicleModalOpen(true);
+                      }}
+                      className="btn-cyber-blue h-11 w-auto px-5 sm:px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 sm:gap-3 cursor-pointer shadow-lg whitespace-nowrap"
+                    >
+                      <Truck className="w-4 h-4 text-blue-300 shrink-0" />
+                      <span>Add Vehicle</span>
+                    </motion.button>
+                  </div>
                 </div>
 
-                {/* Cyber Action Buttons */}
-                <div className="flex items-center flex-wrap gap-2.5">
-                  <motion.button
-                    whileHover={{ scale: 1.04, y: -1 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => {
-                      setSelectedVehicle(null);
-                      setTripModalOpen(true);
-                    }}
-                    className="btn-cyber-cyan px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg"
-                  >
-                    <Navigation className="w-4 h-4 text-cyan-300" />
-                    <span>Log Trip</span>
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
-                      ⚡ Trigger
-                    </span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.04, y: -1 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => {
-                      setSelectedVehicle(null);
-                      setMaintModalOpen(true);
-                    }}
-                    className="btn-cyber-purple px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg"
-                  >
-                    <Wrench className="w-4 h-4 text-purple-300" />
-                    <span>+ Add Maintenance</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.04, y: -1 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => {
-                      setSelectedVehicle(null);
-                      setFuelModalOpen(true);
-                    }}
-                    className="btn-cyber-emerald px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg"
-                  >
-                    <Fuel className="w-4 h-4 text-emerald-300" />
-                    <span>+ Record Fuel</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.04, y: -1 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => {
-                      setSelectedVehicle(null);
-                      setVehicleModalOpen(true);
-                    }}
-                    className="glass-panel px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer hover:border-cyan-400 transition-colors"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    <Truck className="w-4 h-4 text-blue-400" />
-                    <span>+ Register Vehicle</span>
-                  </motion.button>
+                {/* 4 Frosted Glass KPI Cards - Perfectly Centered */}
+                <div className="w-full max-w-7xl mx-auto flex items-center justify-center">
+                  <KpiCards
+                    kpis={kpis}
+                    onOverdueClick={() => setActiveTab('overdue')}
+                  />
                 </div>
-              </div>
 
-              {/* 4 Frosted Glass KPI Cards */}
-              <KpiCards
-                kpis={kpis}
-                onOverdueClick={() => setActiveTab('overdue')}
-              />
+                {/* Main Data Table - Center-Aligned Horizontally */}
+                <div className="w-full max-w-7xl mx-auto flex items-center justify-center">
+                  <FleetTable
+                    vehicles={vehicles}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                    onOpenTripModal={openTripForVehicle}
+                    onEditVehicle={openEditVehicle}
+                    onDeleteVehicle={openDeleteVehicle}
+                    loading={loading}
+                  />
+                </div>
+              </motion.div>
+            )}
 
-              {/* Live Fleet Status Table */}
-              <FleetTable
-                vehicles={vehicles}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
-                onOpenTripModal={openTripForVehicle}
-                onEditVehicle={openEditVehicle}
-                onDeleteVehicle={openDeleteVehicle}
-                loading={loading}
-              />
-            </motion.div>
-          )}
+            {/* TAB 2: OVERDUE MAINTENANCE ALERTS */}
+            {activeTab === 'overdue' && (
+              <motion.div
+                key="overdue-tab"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="w-full flex flex-col items-center justify-center"
+              >
+                <ReportOverdue
+                  overdueData={overdueReport}
+                  loading={loading}
+                  onScheduleMaintenance={openMaintenanceForVehicle}
+                />
+              </motion.div>
+            )}
 
-          {/* TAB 2: OVERDUE MAINTENANCE ALERTS (REPORT 1) */}
-          {activeTab === 'overdue' && (
-            <motion.div
-              key="overdue-tab"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ReportOverdue
-                overdueData={overdueReport}
-                loading={loading}
-                onScheduleMaintenance={openMaintenanceForVehicle}
-              />
-            </motion.div>
-          )}
+            {/* TAB 3: FLEET OPERATING EXPENSE SUMMARY */}
+            {activeTab === 'expenses' && (
+              <motion.div
+                key="expenses-tab"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="w-full flex flex-col items-center justify-center"
+              >
+                <ReportExpenses
+                  expensesData={expensesReport}
+                  loading={loading}
+                  theme={theme}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
+      </div>
 
-          {/* TAB 3: FLEET OPERATING EXPENSE SUMMARY (REPORT 2) */}
-          {activeTab === 'expenses' && (
-            <motion.div
-              key="expenses-tab"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ReportExpenses
-                expensesData={expensesReport}
-                loading={loading}
-                theme={theme}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </main>
-
-      {/* Modal Dialogs with Framer Motion Glass Backdrops */}
+      {/* Modal Dialogs */}
       <TripModal
         isOpen={tripModalOpen}
         onClose={() => setTripModalOpen(false)}
@@ -418,6 +412,14 @@ export default function App() {
         vehicle={selectedVehicle}
         onSuccess={showToast}
       />
-    </div>
+            </motion.div>
+          }
+        />
+
+        {/* Catch-all fallback: redirect to Landing Page */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AnimatePresence>
+  </div>
   );
 }

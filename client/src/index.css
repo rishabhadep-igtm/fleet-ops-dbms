@@ -93,12 +93,7 @@
   --grid-pattern: rgba(0, 243, 255, 0.04);
 }
 
-/* Base resets & typography */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* Base typography & theme transitions */
 
 html, body {
   min-height: 100vh;
@@ -269,6 +264,10 @@ html, body {
 
 /* Buttons with interactive glow drop-shadows */
 .btn-cyber-cyan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
   background: linear-gradient(135deg, rgba(0, 243, 255, 0.22) 0%, rgba(59, 130, 246, 0.30) 100%);
   border: 1px solid rgba(0, 243, 255, 0.55);
   color: var(--text-primary);
@@ -282,6 +281,10 @@ html, body {
 }
 
 .btn-cyber-magenta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
   background: linear-gradient(135deg, rgba(255, 0, 127, 0.22) 0%, rgba(168, 85, 247, 0.30) 100%);
   border: 1px solid rgba(255, 0, 127, 0.55);
   color: var(--text-primary);
@@ -295,6 +298,10 @@ html, body {
 }
 
 .btn-cyber-emerald {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
   background: linear-gradient(135deg, rgba(0, 255, 136, 0.22) 0%, rgba(5, 150, 105, 0.30) 100%);
   border: 1px solid rgba(0, 255, 136, 0.55);
   color: var(--text-primary);
@@ -308,6 +315,10 @@ html, body {
 }
 
 .btn-cyber-purple {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
   background: linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(124, 58, 237, 0.30) 100%);
   border: 1px solid rgba(168, 85, 247, 0.55);
   color: var(--text-primary);
@@ -318,4 +329,21 @@ html, body {
   background: linear-gradient(135deg, rgba(168, 85, 247, 0.38) 0%, rgba(124, 58, 237, 0.50) 100%);
   border-color: var(--neon-purple);
   box-shadow: 0 0 28px rgba(168, 85, 247, 0.55);
+}
+
+.btn-cyber-blue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(99, 102, 241, 0.30) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  color: var(--text-primary);
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.25);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-cyber-blue:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.38) 0%, rgba(99, 102, 241, 0.50) 100%);
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 28px rgba(59, 130, 246, 0.55);
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Navigation, Zap, AlertCircle, ArrowRight, Gauge } from 'lucide-react';
+import { X, Navigation, AlertCircle, ArrowRight, Gauge, CheckCircle2 } from 'lucide-react';
 
 export default function TripModal({
   isOpen,
@@ -71,7 +71,7 @@ export default function TripModal({
     setError('');
 
     if (parseInt(endKm, 10) < parseInt(startKm, 10)) {
-      setError('Relational Constraint Violation: EndKm must be >= StartKm (CHECK constraint).');
+      setError('End odometer must be greater than or equal to start odometer.');
       return;
     }
 
@@ -98,8 +98,8 @@ export default function TripModal({
 
       onSuccess({
         type: 'trigger',
-        message: data.message,
-        detail: data.triggerDetail,
+        message: 'Trip logged successfully',
+        detail: `Vehicle odometer automatically updated to ${Number(endKm).toLocaleString('en-IN')} km.`,
       });
       onClose();
     } catch (err) {
@@ -113,7 +113,6 @@ export default function TripModal({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -122,13 +121,12 @@ export default function TripModal({
             className="fixed inset-0 backdrop-blur-md bg-black/60"
           />
 
-          {/* Modal Panel */}
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className="glass-panel w-full max-w-xl relative z-10 p-6 border neon-card-cyan shadow-2xl overflow-hidden"
+            className="glass-panel w-full max-w-lg relative z-10 p-6 border neon-card-cyan shadow-2xl overflow-hidden"
             style={{ backgroundColor: 'var(--bg-modal)' }}
           >
             {/* Header */}
@@ -149,50 +147,24 @@ export default function TripModal({
                   <h3 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
                     Dispatch Fleet Trip
                   </h3>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span
-                      className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1"
-                      style={{
-                        background: 'rgba(0, 243, 255, 0.15)',
-                        color: 'var(--neon-cyan)',
-                        border: '1px solid rgba(0, 243, 255, 0.3)',
-                      }}
-                    >
-                      <Zap className="w-3 h-3" /> Fires `trg_trip_update_odometer`
-                    </span>
-                  </div>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    Assign driver and log trip mileage.
+                  </p>
                 </div>
               </div>
 
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 style={{ color: 'var(--text-muted)' }}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Trigger Notice */}
-            <div
-              className="my-4 p-3 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5"
-              style={{
-                backgroundColor: 'rgba(0, 243, 255, 0.05)',
-                borderColor: 'rgba(0, 243, 255, 0.25)',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <Zap className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-              <div>
-                <strong className="text-cyan-400">PL/pgSQL Trigger Mechanism:</strong> Inserting this row fires{' '}
-                <code className="text-cyan-300 font-mono">fn_update_vehicle_odometer()</code> to automatically advance{' '}
-                <code className="text-cyan-300 font-mono">Vehicles.CurrentOdometer = EndKm</code> in PostgreSQL.
-              </div>
-            </div>
-
             {error && (
               <div
-                className="mb-4 p-3 rounded-xl border text-xs flex items-center gap-2"
+                className="my-3 p-3 rounded-xl border text-xs flex items-center gap-2"
                 style={{
                   backgroundColor: 'rgba(255, 0, 127, 0.1)',
                   borderColor: 'rgba(255, 0, 127, 0.4)',
@@ -205,12 +177,12 @@ export default function TripModal({
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Vehicle Dropdown */}
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Select Vehicle (FK)
+                    Select Vehicle
                   </label>
                   <select
                     className="glass-input w-full font-mono text-xs"
@@ -235,7 +207,7 @@ export default function TripModal({
                 {/* Driver Dropdown */}
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Assign Driver (FK)
+                    Assign Driver
                   </label>
                   <select
                     className="glass-input w-full font-mono text-xs"
@@ -246,10 +218,9 @@ export default function TripModal({
                     {(drivers || []).map((d) => {
                       const did = d.DriverID ?? d.driverid;
                       const name = d.FullName || d.fullname;
-                      const lic = d.LicenseNumber || d.licensenumber;
                       return (
                         <option key={did} value={did} className="bg-slate-900 text-white">
-                          {name} ({lic})
+                          {name}
                         </option>
                       );
                     })}
@@ -261,7 +232,7 @@ export default function TripModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Dispatch Start Time
+                    Start Time
                   </label>
                   <input
                     type="datetime-local"
@@ -273,7 +244,7 @@ export default function TripModal({
                 </div>
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                    Trip Arrival Time
+                    Estimated Return Time
                   </label>
                   <input
                     type="datetime-local"
@@ -285,7 +256,7 @@ export default function TripModal({
                 </div>
               </div>
 
-              {/* Mileage progression calculation */}
+              {/* Mileage Progression */}
               <div className="p-3.5 rounded-xl border" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-glass)' }}>
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
@@ -299,13 +270,13 @@ export default function TripModal({
                     />
                   </div>
                   <div className="flex flex-col items-center justify-center">
-                    <span className="text-[10px] font-mono uppercase text-cyan-400 mb-0.5">Calculated Run</span>
+                    <span className="text-[10px] font-mono uppercase text-cyan-400 mb-0.5">Distance</span>
                     <div className="flex items-center gap-1 font-mono font-bold text-sm text-cyan-400">
                       <span>+{tripDistance} km</span>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[11px] font-mono text-slate-400 mb-1">End Km (New Odo)</label>
+                    <label className="block text-[11px] font-mono text-slate-400 mb-1">End Km (New Odometer)</label>
                     <input
                       type="number"
                       className="glass-input w-full text-center font-mono font-semibold"
@@ -325,18 +296,18 @@ export default function TripModal({
                 <input
                   type="text"
                   className="glass-input w-full text-xs"
-                  placeholder="e.g. Regional Hub express parcel run — Cargo Verified"
+                  placeholder="e.g. Route A-4 express delivery"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
 
-              {/* Action buttons */}
+              {/* Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-xl text-xs font-medium border"
+                  className="px-4 py-2 rounded-xl text-xs font-medium border cursor-pointer"
                   style={{ borderColor: 'var(--border-glass)', color: 'var(--text-secondary)' }}
                 >
                   Cancel
@@ -346,10 +317,10 @@ export default function TripModal({
                   whileTap={{ scale: 0.97 }}
                   type="submit"
                   disabled={submitting}
-                  className="btn-cyber-cyan px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2"
+                  className="btn-cyber-cyan px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer"
                 >
-                  <Zap className="w-4 h-4 text-cyan-400" />
-                  <span>{submitting ? 'Executing SQL Trigger...' : 'Record Trip & Fire Trigger'}</span>
+                  <Navigation className="w-4 h-4 text-cyan-400" />
+                  <span>{submitting ? 'Recording Trip...' : 'Dispatch Trip'}</span>
                 </motion.button>
               </div>
             </form>

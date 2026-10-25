@@ -79,6 +79,8 @@ def get_operating_cost_report():
         total_fleet_fuel = sum(row["TotalFuelCost"] for row in data)
         total_fleet_maint = sum(row["TotalMaintenanceCost"] for row in data)
         total_fleet_cost = sum(row["TotalOperatingCost"] for row in data)
+        total_fleet_dist = sum(row.get("TotalDistanceKm") or 0 for row in data)
+        overall_avg_cost_km = round(total_fleet_cost / total_fleet_dist, 2) if total_fleet_dist > 0 else 0
 
         return jsonify({
             "success": True,
@@ -88,6 +90,8 @@ def get_operating_cost_report():
                 "total_fleet_fuel_cost": round(total_fleet_fuel, 2),
                 "total_fleet_maintenance_cost": round(total_fleet_maint, 2),
                 "total_fleet_operating_cost": round(total_fleet_cost, 2),
+                "total_fleet_distance_km": round(total_fleet_dist, 2),
+                "overall_avg_cost_per_km": overall_avg_cost_km,
             },
             "chartData": {
                 "labels": chart_labels,
