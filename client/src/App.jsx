@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import InteractiveRoadCanvas from './components/InteractiveRoadCanvas';
 import Navbar from './components/Navbar';
 import KpiCards from './components/KpiCards';
 import FleetTable from './components/FleetTable';
@@ -9,7 +11,16 @@ import FuelModal from './components/modals/FuelModal';
 import MaintenanceModal from './components/modals/MaintenanceModal';
 import VehicleModal from './components/modals/VehicleModal';
 import DeleteModal from './components/modals/DeleteModal';
-import { Plus, Navigation, Fuel, Wrench, Truck, CheckCircle2, Zap, AlertTriangle, RefreshCw } from 'lucide-react';
+import {
+  Navigation,
+  Fuel,
+  Wrench,
+  Truck,
+  Zap,
+  CheckCircle2,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 
 export default function App() {
   // Theme state: defaults to sleek dark mode
@@ -57,15 +68,16 @@ export default function App() {
   const refreshAllData = useCallback(async () => {
     setLoading(true);
     try {
-      const [healthRes, kpisRes, vehiclesRes, driversRes, centersRes, overdueRes, expensesRes] = await Promise.all([
-        fetch('/api/health').then((r) => r.json()).catch(() => null),
-        fetch('/api/kpis').then((r) => r.json()).catch(() => null),
-        fetch('/api/vehicles').then((r) => r.json()).catch(() => null),
-        fetch('/api/drivers').then((r) => r.json()).catch(() => null),
-        fetch('/api/service-centers').then((r) => r.json()).catch(() => null),
-        fetch('/api/reports/overdue').then((r) => r.json()).catch(() => null),
-        fetch('/api/reports/operating-cost').then((r) => r.json()).catch(() => null),
-      ]);
+      const [healthRes, kpisRes, vehiclesRes, driversRes, centersRes, overdueRes, expensesRes] =
+        await Promise.all([
+          fetch('/api/health').then((r) => r.json()).catch(() => null),
+          fetch('/api/kpis').then((r) => r.json()).catch(() => null),
+          fetch('/api/vehicles').then((r) => r.json()).catch(() => null),
+          fetch('/api/drivers').then((r) => r.json()).catch(() => null),
+          fetch('/api/service-centers').then((r) => r.json()).catch(() => null),
+          fetch('/api/reports/overdue').then((r) => r.json()).catch(() => null),
+          fetch('/api/reports/operating-cost').then((r) => r.json()).catch(() => null),
+        ]);
 
       if (healthRes) setDbHealth(healthRes);
       if (kpisRes && kpisRes.success) setKpis(kpisRes.kpis);
@@ -90,7 +102,7 @@ export default function App() {
     setNotification(toast);
     setTimeout(() => {
       setNotification((curr) => (curr === toast ? null : curr));
-    }, 6000);
+    }, 7000);
     refreshAllData();
   };
 
@@ -115,16 +127,14 @@ export default function App() {
     setMaintModalOpen(true);
   };
 
-  return (
-    <div className="app-wrapper">
-      {/* Ambient Animated Glowing Blobs */}
-      <div className="ambient-background">
-        <div className="ambient-blob blob-1" />
-        <div className="ambient-blob blob-2" />
-        <div className="ambient-blob blob-3" />
-      </div>
+  const overdueCount = kpis?.overdue_service_alerts ?? 0;
 
-      {/* Top Sticky Navigation */}
+  return (
+    <div className="relative min-h-screen text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+      {/* 3D "Car on a Road" Interactive Three.js Background with Lane Steering & Parallax */}
+      <InteractiveRoadCanvas theme={theme} />
+
+      {/* Top Cyber Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -132,136 +142,243 @@ export default function App() {
         toggleTheme={toggleTheme}
         dbHealth={dbHealth}
         onRefresh={refreshAllData}
+        overdueCount={overdueCount}
       />
 
-      <main className="main-content">
-        {/* Dynamic System Alert / Trigger Notification Banner */}
+      {/* Floating System HUD Toast Notification */}
+      <AnimatePresence>
         {notification && (
-          <div
-            className={`alert-banner ${notification.type === 'trigger' ? 'trigger' : notification.type === 'error' ? 'error' : 'success'}`}
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed top-24 right-4 z-50 max-w-md w-full shadow-2xl rounded-2xl border p-4 backdrop-blur-2xl"
+            style={{
+              backgroundColor: 'var(--bg-modal)',
+              borderColor:
+                notification.type === 'trigger'
+                  ? 'var(--neon-cyan)'
+                  : notification.type === 'error'
+                  ? 'var(--neon-magenta)'
+                  : 'var(--neon-emerald)',
+              boxShadow:
+                notification.type === 'trigger'
+                  ? 'var(--glow-cyan)'
+                  : notification.type === 'error'
+                  ? 'var(--glow-magenta)'
+                  : 'var(--glow-emerald)',
+            }}
           >
-            {notification.type === 'trigger' ? (
-              <Zap size={20} style={{ flexShrink: 0 }} />
-            ) : notification.type === 'error' ? (
-              <AlertTriangle size={20} style={{ flexShrink: 0 }} />
-            ) : (
-              <CheckCircle2 size={20} style={{ flexShrink: 0 }} />
-            )}
-            <div style={{ flex: 1 }}>
-              <strong>{notification.message}</strong>
-              {notification.detail && <div style={{ fontSize: '0.84rem', marginTop: '2px' }}>{notification.detail}</div>}
-            </div>
-          </div>
-        )}
+            <div className="flex items-start gap-3">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                style={{
+                  background:
+                    notification.type === 'trigger'
+                      ? 'rgba(0, 243, 255, 0.2)'
+                      : notification.type === 'error'
+                      ? 'rgba(255, 0, 127, 0.2)'
+                      : 'rgba(0, 255, 136, 0.2)',
+                  color:
+                    notification.type === 'trigger'
+                      ? 'var(--neon-cyan)'
+                      : notification.type === 'error'
+                      ? 'var(--neon-magenta)'
+                      : 'var(--neon-emerald)',
+                }}
+              >
+                {notification.type === 'trigger' ? (
+                  <Zap className="w-5 h-5 animate-pulse" />
+                ) : notification.type === 'error' ? (
+                  <AlertTriangle className="w-5 h-5" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5" />
+                )}
+              </div>
 
-        {/* TAB 1: LIVE DASHBOARD */}
-        {activeTab === 'dashboard' && (
-          <div>
-            {/* Quick Action Buttons Toolbar */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px',
-                marginBottom: '20px',
-              }}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">
+                  {notification.type === 'trigger'
+                    ? 'PL/pgSQL Trigger Fired'
+                    : notification.type === 'error'
+                    ? 'DBMS Warning'
+                    : 'Transaction Committed'}
+                </div>
+                <div className="text-sm font-semibold mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                  {notification.message}
+                </div>
+                {notification.detail && (
+                  <div
+                    className="text-xs mt-1.5 p-2 rounded-lg font-mono leading-relaxed"
+                    style={{
+                      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    {notification.detail}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setNotification(null)}
+                className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Dashboard Canvas */}
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <AnimatePresence mode="wait">
+          {/* TAB 1: LIVE DASHBOARD */}
+          {activeTab === 'dashboard' && (
+            <motion.div
+              key="dashboard-tab"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
             >
-              <div>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.45rem', fontWeight: 700 }}>
-                  Delivery Fleet Operations Command
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem' }}>
-                  Live operational tracking, driver assignments, and automated maintenance triggers
-                </p>
+              {/* Header Action Toolbar */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 mb-8">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                    <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-semibold">
+                      Live Telemetry & Relational Hub
+                    </span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-display font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    Commercial Fleet Operations
+                  </h2>
+                  <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                    Live route dispatches, fuel accounting, and automated PL/pgSQL odometer triggers
+                  </p>
+                </div>
+
+                {/* Cyber Action Buttons */}
+                <div className="flex items-center flex-wrap gap-2.5">
+                  <motion.button
+                    whileHover={{ scale: 1.04, y: -1 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      setSelectedVehicle(null);
+                      setTripModalOpen(true);
+                    }}
+                    className="btn-cyber-cyan px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    <Navigation className="w-4 h-4 text-cyan-300" />
+                    <span>Log Trip</span>
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">
+                      ⚡ Trigger
+                    </span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.04, y: -1 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      setSelectedVehicle(null);
+                      setMaintModalOpen(true);
+                    }}
+                    className="btn-cyber-purple px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    <Wrench className="w-4 h-4 text-purple-300" />
+                    <span>+ Add Maintenance</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.04, y: -1 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      setSelectedVehicle(null);
+                      setFuelModalOpen(true);
+                    }}
+                    className="btn-cyber-emerald px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    <Fuel className="w-4 h-4 text-emerald-300" />
+                    <span>+ Record Fuel</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.04, y: -1 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => {
+                      setSelectedVehicle(null);
+                      setVehicleModalOpen(true);
+                    }}
+                    className="glass-panel px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer hover:border-cyan-400 transition-colors"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <Truck className="w-4 h-4 text-blue-400" />
+                    <span>+ Register Vehicle</span>
+                  </motion.button>
+                </div>
               </div>
 
-              <div className="action-buttons">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setSelectedVehicle(null);
-                    setTripModalOpen(true);
-                  }}
-                >
-                  <Navigation size={15} />
-                  + Log Trip (Trigger)
-                </button>
-                <button
-                  className="btn btn-purple"
-                  onClick={() => {
-                    setSelectedVehicle(null);
-                    setMaintModalOpen(true);
-                  }}
-                >
-                  <Wrench size={15} />
-                  + Add Maintenance
-                </button>
-                <button
-                  className="btn btn-emerald"
-                  onClick={() => {
-                    setSelectedVehicle(null);
-                    setFuelModalOpen(true);
-                  }}
-                >
-                  <Fuel size={15} />
-                  + Record Fuel
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setSelectedVehicle(null);
-                    setVehicleModalOpen(true);
-                  }}
-                >
-                  <Truck size={15} />
-                  + Register Vehicle
-                </button>
-              </div>
-            </div>
+              {/* 4 Frosted Glass KPI Cards */}
+              <KpiCards
+                kpis={kpis}
+                onOverdueClick={() => setActiveTab('overdue')}
+              />
 
-            {/* Top KPI Cards */}
-            <KpiCards
-              kpis={kpis}
-              onOverdueClick={() => setActiveTab('overdue')}
-            />
+              {/* Live Fleet Status Table */}
+              <FleetTable
+                vehicles={vehicles}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
+                onOpenTripModal={openTripForVehicle}
+                onEditVehicle={openEditVehicle}
+                onDeleteVehicle={openDeleteVehicle}
+                loading={loading}
+              />
+            </motion.div>
+          )}
 
-            {/* Live Fleet Status Table */}
-            <FleetTable
-              vehicles={vehicles}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              onOpenTripModal={openTripForVehicle}
-              onEditVehicle={openEditVehicle}
-              onDeleteVehicle={openDeleteVehicle}
-              loading={loading}
-            />
-          </div>
-        )}
+          {/* TAB 2: OVERDUE MAINTENANCE ALERTS (REPORT 1) */}
+          {activeTab === 'overdue' && (
+            <motion.div
+              key="overdue-tab"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ReportOverdue
+                overdueData={overdueReport}
+                loading={loading}
+                onScheduleMaintenance={openMaintenanceForVehicle}
+              />
+            </motion.div>
+          )}
 
-        {/* TAB 2: OVERDUE MAINTENANCE ALERTS (REPORT 1) */}
-        {activeTab === 'overdue' && (
-          <ReportOverdue
-            overdueData={overdueReport}
-            loading={loading}
-            onScheduleMaintenance={openMaintenanceForVehicle}
-          />
-        )}
-
-        {/* TAB 3: FLEET OPERATING EXPENSE SUMMARY (REPORT 2) */}
-        {activeTab === 'expenses' && (
-          <ReportExpenses
-            expensesData={expensesReport}
-            loading={loading}
-            theme={theme}
-          />
-        )}
+          {/* TAB 3: FLEET OPERATING EXPENSE SUMMARY (REPORT 2) */}
+          {activeTab === 'expenses' && (
+            <motion.div
+              key="expenses-tab"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ReportExpenses
+                expensesData={expensesReport}
+                loading={loading}
+                theme={theme}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
-      {/* MODAL DIALOGS */}
+      {/* Modal Dialogs with Framer Motion Glass Backdrops */}
       <TripModal
         isOpen={tripModalOpen}
         onClose={() => setTripModalOpen(false)}

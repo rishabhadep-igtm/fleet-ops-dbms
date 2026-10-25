@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Fuel, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Fuel, AlertCircle, Calculator, IndianRupee } from 'lucide-react';
 
 export default function FuelModal({ isOpen, onClose, vehicles, drivers, onSuccess }) {
   const [vehicleId, setVehicleId] = useState('');
@@ -15,19 +16,20 @@ export default function FuelModal({ isOpen, onClose, vehicles, drivers, onSucces
     if (isOpen) {
       setError('');
       setLogDate(new Date().toISOString().slice(0, 10));
-      if (vehicles && vehicles.length > 0) setVehicleId(vehicles[0].VehicleID);
-      if (drivers && drivers.length > 0) setDriverId(drivers[0].DriverID);
+      if (vehicles && vehicles.length > 0) {
+        setVehicleId(vehicles[0].VehicleID ?? vehicles[0].vehicleid);
+      }
+      if (drivers && drivers.length > 0) {
+        setDriverId(drivers[0].DriverID ?? drivers[0].driverid);
+      }
     }
   }, [isOpen, vehicles, drivers]);
 
-  // Dynamically calculate total fuel cost
   useEffect(() => {
     const l = parseFloat(liters) || 0;
     const c = parseFloat(costPerLiter) || 0;
     setTotalAmount((l * c).toFixed(2));
   }, [liters, costPerLiter]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,19 +51,19 @@ export default function FuelModal({ isOpen, onClose, vehicles, drivers, onSucces
           Liters: parseFloat(liters),
           CostPerLiter: parseFloat(costPerLiter),
           TotalAmount: parseFloat(totalAmount),
-          LogDate: logDate
+          LogDate: logDate,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to log fuel voucher');
+        throw new Error(data.error || 'Failed to record fuel log');
       }
 
       onSuccess({
         type: 'success',
-        message: 'Fuel expenditure logged successfully.',
-        detail: `Recorded ₹${totalAmount} for ${liters} L fuel.`
+        message: data.message,
+        detail: `Added ₹${totalAmount} fuel voucher to vehicle operating cost aggregation view.`,
       });
       onClose();
     } catch (err) {
@@ -72,131 +74,212 @@ export default function FuelModal({ isOpen, onClose, vehicles, drivers, onSucces
   };
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal-container">
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Fuel size={20} color="var(--accent-cyan)" />
-            <h3 className="modal-title">Record Fleet Refueling Voucher</h3>
-          </div>
-          <button className="modal-close-btn" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 backdrop-blur-md bg-black/60"
+          />
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="glass-panel w-full max-w-lg relative z-10 p-6 border neon-card-emerald shadow-2xl overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-modal)' }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b" style={{ borderColor: 'var(--border-glass)' }}>
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{
+                    background: 'rgba(0, 255, 136, 0.15)',
+                    border: '1px solid rgba(0, 255, 136, 0.4)',
+                    color: 'var(--neon-emerald)',
+                    boxShadow: 'var(--glow-emerald)',
+                  }}
+                >
+                  <Fuel className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-lg" style={{ color: 'var(--text-primary)' }}>
+                    Record Refueling Expense
+                  </h3>
+                  <p className="text-xs font-mono" style={{ color: 'var(--text-muted)' }}>
+                    Transactional Table: FuelLogs
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
             {error && (
-              <div className="alert-banner error">
-                <AlertCircle size={16} />
-                <div>{error}</div>
+              <div
+                className="my-4 p-3 rounded-xl border text-xs flex items-center gap-2"
+                style={{
+                  backgroundColor: 'rgba(255, 0, 127, 0.1)',
+                  borderColor: 'rgba(255, 0, 127, 0.4)',
+                  color: 'var(--neon-magenta)',
+                }}
+              >
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label">Vehicle (Master Table)</label>
-              <select
-                className="form-select"
-                value={vehicleId}
-                onChange={(e) => setVehicleId(e.target.value)}
-                required
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Vehicle Selection */}
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    Target Vehicle (FK)
+                  </label>
+                  <select
+                    className="glass-input w-full font-mono text-xs"
+                    value={vehicleId}
+                    onChange={(e) => setVehicleId(e.target.value)}
+                    required
+                  >
+                    {(vehicles || []).map((v) => {
+                      const vid = v.VehicleID ?? v.vehicleid;
+                      const plate = v.LicensePlate || v.licenseplate;
+                      const model = v.Model || v.model;
+                      return (
+                        <option key={vid} value={vid} className="bg-slate-900 text-white">
+                          {plate} — {model}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Driver Selection */}
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    Fuel Card Authorized Driver (FK)
+                  </label>
+                  <select
+                    className="glass-input w-full font-mono text-xs"
+                    value={driverId}
+                    onChange={(e) => setDriverId(e.target.value)}
+                    required
+                  >
+                    {(drivers || []).map((d) => {
+                      const did = d.DriverID ?? d.driverid;
+                      const name = d.FullName || d.fullname;
+                      return (
+                        <option key={did} value={did} className="bg-slate-900 text-white">
+                          {name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              {/* Liters & Cost/Liter */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    Dispensed Liters
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    className="glass-input w-full font-mono"
+                    value={liters}
+                    onChange={(e) => setLiters(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                    Price Per Liter (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    className="glass-input w-full font-mono"
+                    value={costPerLiter}
+                    onChange={(e) => setCostPerLiter(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Cost Total Banner */}
+              <div
+                className="p-4 rounded-xl border flex items-center justify-between"
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  borderColor: 'rgba(0, 255, 136, 0.35)',
+                  boxShadow: 'var(--glow-emerald)',
+                }}
               >
-                {vehicles.filter(v => (v.Status || v.status) !== 'Retired').map((v) => {
-                  const vid = v.VehicleID ?? v.vehicleid;
-                  const plate = v.LicensePlate || v.licenseplate || '';
-                  const model = v.Model || v.model || '';
-                  return (
-                    <option key={vid} value={vid}>
-                      {plate} — {model}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Driver Purchasing Fuel</label>
-              <select
-                className="form-select"
-                value={driverId}
-                onChange={(e) => setDriverId(e.target.value)}
-                required
-              >
-                {drivers.filter(d => (d.Status || d.status) === 'Active').map((d) => {
-                  const did = d.DriverID ?? d.driverid;
-                  const name = d.FullName || d.fullname || '';
-                  const lic = d.LicenseNumber || d.licensenumber || '';
-                  return (
-                    <option key={did} value={did}>
-                      {name} ({lic})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
-                <label className="form-label">Fuel Volume (Liters)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input cell-mono"
-                  value={liters}
-                  onChange={(e) => setLiters(e.target.value)}
-                  min="0.1"
-                  required
-                />
+                <div className="flex items-center gap-2 text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>
+                  <Calculator className="w-4 h-4 text-emerald-400" />
+                  <span>Calculated Fuel Spend:</span>
+                </div>
+                <div className="text-xl font-display font-bold font-mono" style={{ color: 'var(--neon-emerald)' }}>
+                  ₹{Number(totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">Cost Per Liter (₹/L)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input cell-mono"
-                  value={costPerLiter}
-                  onChange={(e) => setCostPerLiter(e.target.value)}
-                  min="0.01"
-                  required
-                />
-              </div>
-            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
-                <label className="form-label">Total Amount (₹)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input cell-mono"
-                  value={totalAmount}
-                  readOnly
-                  style={{ background: 'var(--bg-secondary)', fontWeight: 700 }}
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Receipt Date</label>
+              {/* Date */}
+              <div>
+                <label className="block text-xs font-mono uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                  Voucher Timestamp Date
+                </label>
                 <input
                   type="date"
-                  className="form-input"
+                  className="glass-input w-full font-mono text-xs"
                   value={logDate}
                   onChange={(e) => setLogDate(e.target.value)}
                   required
                 />
               </div>
-            </div>
-          </div>
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? 'Saving Voucher...' : 'Log Fuel Expense'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t" style={{ borderColor: 'var(--border-glass)' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-xl text-xs font-medium border"
+                  style={{ borderColor: 'var(--border-glass)', color: 'var(--text-secondary)' }}
+                >
+                  Cancel
+                </button>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-cyber-emerald px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2"
+                >
+                  <Fuel className="w-4 h-4 text-emerald-400" />
+                  <span>{submitting ? 'Inserting Fuel Row...' : 'Log Fuel Voucher'}</span>
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }
